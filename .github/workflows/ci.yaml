@@ -1,0 +1,68 @@
+name: Release
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '**.md'
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    concurrency: release
+    permissions:
+      id-token: write
+      contents: write
+
+    steps:
+      - name: 📥 Checkout repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: 🐍  Setup Python 3.8
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+      
+      - name: 💻 Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: ⚙️ Configure Poetry
+        run: |
+          poetry config virtualenvs.create false
+          poetry config virtualenvs.in-project false
+
+      - name: Install dependencies with Poetry
+        run: poetry install --no-root
+
+      - name: 🐍 Python Semantic Release
+        id: srelease
+        uses: python-semantic-release/python-semantic-release@v8.3.0
+        with:
+          github_token: ${{ secrets.GH_TOKEN }}
+      
+      - name: 🔍 Print Semantic Release Output (for Debugging purposes)
+        if: always()
+        run: |
+          echo "Released: ${{ steps.srelease.outputs.released }}"
+          echo "New version: ${{ steps.srelease.outputs.new_version }}"
+          echo "Version change: ${{ steps.srelease.outputs.version_change }}"
+
+      - name: 🛠️ Build distributions with Poetry
+        run: poetry build
+        if: steps.srelease.outputs.released == 'true'
+
+      - name: 🚀 Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        if: steps.srelease.outputs.released == 'true'
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_TOKEN }}
+      
+      - name: 🚀 Publish to GitHub Releases
+        uses: python-semantic-release/upload-to-gh-release@main
+        if: steps.srelease.outputs.released == 'true'
+        with:
+          github_token: ${{ secrets.GH_TOKEN }}

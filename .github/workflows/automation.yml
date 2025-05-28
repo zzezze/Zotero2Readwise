@@ -1,0 +1,58 @@
+name: Zotero to Readwise Automation
+
+on:
+  push:
+    branches:
+      - master
+  schedule:
+    # 每 1 小时运行一次（UTC：00:00、01:00、02:00…）
+    - cron: '*/30 * * * *'
+
+jobs:
+  zotero-to-readwise-automation:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ 拉取代码
+      - name: 🍽️ Checkout the repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      # 2️⃣ 安装 Python 3.8
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.8'
+
+      # 3️⃣ 缓存 pip 依赖
+      - name: 📦 Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('.github/workflows/automation.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      # 4️⃣ 安装依赖（锁定兼容版本）
+      - name: 📥 Install dependencies
+        run: |
+          pip install zotero2readwise==0.4.5
+          pip install "pyzotero<1.6"
+
+      # 5️⃣ 下载官方 run.py 脚本
+      - name: 📥 Download automation script
+        run: |
+          curl -sSL \
+            https://raw.githubusercontent.com/e-alizadeh/Zotero2Readwise/master/zotero2readwise/run.py \
+            -o run.py
+
+      # 6️⃣ 运行同步：只同步 Notes，不同步 Annotations
+      - name: 🚀 Run Zotero → Readwise sync
+        run: |
+          python run.py \
+            "${{ secrets.READWISE_TOKEN }}" \
+            "${{ secrets.ZOTERO_KEY }}" \
+            "${{ secrets.ZOTERO_ID }}" \
+            --include_annotations y \
+            --include_notes y
