@@ -40,17 +40,10 @@ jobs:
           pip install zotero2readwise==0.4.5
           pip install "pyzotero<1.6"
 
-      # 5️⃣ 下载官方 run.py 脚本
-      - name: 📥 Download automation script
-        run: |
-          curl -sSL \
-            https://raw.githubusercontent.com/e-alizadeh/Zotero2Readwise/master/zotero2readwise/run.py \
-            -o run.py
-
-      # 6️⃣ 运行同步：只同步 Notes，不同步 Annotations
+      # 5️⃣ 运行同步：使用本地 run.py 脚本
       - name: 🚀 Run Zotero → Readwise sync
         run: |
-          python run.py \
+          python zotero2readwise/run.py \
             "${{ secrets.READWISE_TOKEN }}" \
             "${{ secrets.ZOTERO_KEY }}" \
             "${{ secrets.ZOTERO_ID }}" \
