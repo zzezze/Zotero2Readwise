@@ -47,5 +47,5 @@ jobs:
             "${{ secrets.READWISE_TOKEN }}" \
             "${{ secrets.ZOTERO_KEY }}" \
             "${{ secrets.ZOTERO_ID }}" \
-            --include_annotations y \
+            --include_annotations n \
             --include_notes y
