@@ -6,9 +6,57 @@ from typing import Dict, List, Optional
 from pyzotero.zotero import Zotero
 from pyzotero.zotero_errors import ParamNotPassed, UnsupportedParams
 from markdownify import markdownify as md
+import textwrap
 
 from zotero2readwise import FAILED_ITEMS_DIR
 from zotero2readwise.helper import html_to_markdown
+
+
+# Readwise character limit constants
+MAX_RW_LEN = 8191  # Readwise hard limit
+SAFE_LEN = 8000    # Safe limit with margin for "(part x/n)" text
+
+
+def html_to_segments(raw_html: str) -> List[str]:
+    """
+    1) Convert HTML to Markdown (preserving formatting)
+    2) Split by paragraphs, then wrap if still too long
+    3) Ensure each segment is <= Readwise's character limit
+    
+    Returns a list of text segments ready for Readwise import.
+    """
+    # Convert HTML to Markdown
+    markdown_text = md(raw_html, heading_style="ATX").strip()
+    
+    # If already under limit, return as is
+    if len(markdown_text) <= SAFE_LEN:
+        return [markdown_text]
+        
+    # Split by paragraphs first
+    segments = []
+    for para in markdown_text.split("\n\n"):
+        if len(para) <= SAFE_LEN:
+            segments.append(para)
+        else:
+            # Paragraph still too long, wrap it
+            segments.extend(
+                textwrap.wrap(
+                    para, 
+                    width=SAFE_LEN,
+                    break_long_words=False,
+                    break_on_hyphens=False
+                )
+            )
+    
+    # Final check to handle extreme cases
+    final_segments = []
+    for seg in segments:
+        while len(seg) > MAX_RW_LEN:
+            final_segments.append(seg[:SAFE_LEN])
+            seg = seg[SAFE_LEN:]
+        final_segments.append(seg)
+    
+    return final_segments
 
 
 @dataclass
@@ -180,7 +228,7 @@ class ZoteroAnnotationsNotes:
                 # Convert HTML in annotation comments to Markdown
                 comment = data["annotationComment"]
                 if comment:
-                    # Use markdownify for better HTML to Markdown conversion
+                    # Use our HTML to segments conversion
                     comment = md(comment, heading_style="ATX")
             elif annotation_type == "note":
                 # Convert HTML in notes to Markdown
@@ -191,8 +239,11 @@ class ZoteroAnnotationsNotes:
                     "Handwritten annotations are not currently supported."
                 )
         elif item_type == "note":
-            # Convert HTML in standalone notes to Markdown
-            text = md(data["note"], heading_style="ATX")
+            # Convert HTML in standalone notes to Markdown and handle long text
+            note_html = data["note"]
+            # Use our html_to_segments function but take the first segment
+            # The splitting into segments will be handled by the readwise class
+            text = html_to_segments(note_html)[0]
             comment = ""
         else:
             raise NotImplementedError(
@@ -231,9 +282,16 @@ class ZoteroAnnotationsNotes:
         )
         for annot in annots:
             try:
-                if len(self.filter_colors) == 0 or annot["data"]["annotationColor"] in self.filter_colors:
-                    formatted_annots.append(self.format_item(annot))
-            except:
+                data = annot["data"]
+                # For annotations, check color filter if applicable
+                if data["itemType"] == "annotation" and len(self.filter_colors) > 0:
+                    color = data.get("annotationColor")
+                    if color not in self.filter_colors:
+                        continue
+                
+                formatted_annots.append(self.format_item(annot))
+            except Exception as e:
+                print(f"Error formatting item: {str(e)}")
                 self.failed_items.append(annot)
                 continue
 

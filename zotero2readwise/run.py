@@ -1,8 +1,13 @@
 from argparse import ArgumentParser
 from distutils.util import strtobool
+import sys
 
+import zotero2readwise
 from zotero2readwise.helper import write_library_version, read_library_version
 from zotero2readwise.zt2rw import Zotero2Readwise
+
+# Sanity check to verify we're using the correct code
+print(f"Running zotero2readwise from {zotero2readwise.__file__}", file=sys.stderr)
 
 
 if __name__ == "__main__":
