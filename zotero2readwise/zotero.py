@@ -5,6 +5,7 @@ from typing import Dict, List, Optional
 
 from pyzotero.zotero import Zotero
 from pyzotero.zotero_errors import ParamNotPassed, UnsupportedParams
+from markdownify import markdownify as md
 
 from zotero2readwise import FAILED_ITEMS_DIR
 from zotero2readwise.helper import html_to_markdown
@@ -179,10 +180,11 @@ class ZoteroAnnotationsNotes:
                 # Convert HTML in annotation comments to Markdown
                 comment = data["annotationComment"]
                 if comment:
-                    comment = html_to_markdown(comment)
+                    # Use markdownify for better HTML to Markdown conversion
+                    comment = md(comment, heading_style="ATX")
             elif annotation_type == "note":
                 # Convert HTML in notes to Markdown
-                text = html_to_markdown(data["annotationComment"])
+                text = md(data["annotationComment"], heading_style="ATX")
                 comment = ""
             else:
                 raise NotImplementedError(
@@ -190,7 +192,7 @@ class ZoteroAnnotationsNotes:
                 )
         elif item_type == "note":
             # Convert HTML in standalone notes to Markdown
-            text = html_to_markdown(data["note"])
+            text = md(data["note"], heading_style="ATX")
             comment = ""
         else:
             raise NotImplementedError(

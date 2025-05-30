@@ -1,7 +1,7 @@
 # html_to_markdown_improved.py
 #
 # Utility that converts HTML fragments or full pages into GitHub‑flavoured
-# Markdown and runs unchanged on Python 3.7‑3.12.
+# Markdown and runs unchanged on Python 3.7‑3.12.
 #
 # Key additions / refinements
 # ---------------------------
@@ -23,11 +23,19 @@ from bs4 import BeautifulSoup, NavigableString, Tag
 
 __all__ = [
     "html_to_markdown",
+    "sanitize_tag",
 ]
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+def sanitize_tag(tag: str) -> str:
+    """
+    Sanitize a tag string for use with Readwise.
+    Remove spaces and replace with underscores.
+    """
+    return tag.replace(" ", "_").replace("-", "_")
 
 def _strip_tex(tex: str) -> str:
     """Remove leading/trailing LaTeX delimiters like $, $$, \\[ … \\]."""

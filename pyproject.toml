@@ -38,6 +38,7 @@ env = "GH_TOKEN" # default env name containing the GitHub Token
 python = "^3.8"
 Pyzotero = "^1.4.26"
 requests = "^2.26.0"
+markdownify = "^0.11.0"
 
 [tool.poetry.group.dev.dependencies]
 ipython = "^7.32.0"
