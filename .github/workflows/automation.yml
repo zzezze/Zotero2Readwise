@@ -37,8 +37,10 @@ jobs:
       # 4️⃣ 安装依赖（锁定兼容版本）
       - name: 📥 Install dependencies
         run: |
-          pip install zotero2readwise==0.4.5
+          pip uninstall -y zotero2readwise || true
+          pip install -e .
           pip install "pyzotero<1.6"
+          
 
       # 5️⃣ 运行同步：使用本地 run.py 脚本
       - name: 🚀 Run Zotero → Readwise sync
